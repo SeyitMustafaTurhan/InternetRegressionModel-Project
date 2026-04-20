@@ -1,0 +1,190 @@
+#Econ301 Homework1
+#The Relationship Between Economic Development and Internet Adoption: An Analysis of GDP and Internet Usage 
+
+
+
+
+# we uploaded our data with this way because we wanted to show you EVERY steps
+setwd("C:/Users/tseyi/Desktop")
+
+homework1 <- read.csv("gapminder_internet.csv")
+
+View(homework1)
+
+
+
+#required libraries
+library(dplyr)
+options(dplyr.summarise.inform = FALSE)
+install.packages("kableExtra")
+library(kableExtra)
+library(ggplot2)
+library(knitr)
+
+
+#don't need for urbanrate informations
+homework1 <- homework1[, !names(homework1) %in% "urbanrate"]
+
+View(homework1)
+
+
+any(is.na(homework1))
+sum(is.na(homework1))
+
+
+
+
+
+
+# Any row with more than 1 NA removed
+homework1_clean <- na.omit(homework1)
+
+
+
+
+
+View(homework1_clean)
+
+any(is.na(homework1_clean))
+
+
+
+
+# Basic summary statistics
+summary(homework1_clean$incomeperperson)
+summary(homework1_clean$internetuserate)
+
+
+
+# Check for missing values in these columns
+sum(is.na(homework1_clean$incomeperperson))
+sum(is.na(homework1_clean$internetuserate))
+
+
+
+
+
+#descriptive statistics
+desc_stats <- homework1_clean %>%
+  select(incomeperperson, internetuserate) %>%
+  summarise(
+    Variable = c("Income per Person", "Internet Use Rate"),
+    Mean = c(mean(incomeperperson, na.rm = TRUE), mean(internetuserate, na.rm = TRUE)),
+    SD = c(sd(incomeperperson, na.rm = TRUE), sd(internetuserate, na.rm = TRUE)),
+    Min = c(min(incomeperperson, na.rm = TRUE), min(internetuserate, na.rm = TRUE)),
+    Max = c(max(incomeperperson, na.rm = TRUE), max(internetuserate, na.rm = TRUE)),
+    Q25 = c(quantile(incomeperperson, 0.25, na.rm = TRUE), quantile(internetuserate, 0.25, na.rm = TRUE)),
+    Q50 = c(quantile(incomeperperson, 0.50, na.rm = TRUE), quantile(internetuserate, 0.50, na.rm =TRUE)),
+    Q75 = c(quantile(incomeperperson, 0.75, na.rm =TRUE), quantile(internetuserate, 0.75, na.rm = TRUE)),
+    N = c(sum(!is.na(incomeperperson)), sum(!is.na(internetuserate)))
+  )
+
+print(desc_stats)
+
+
+
+desc_stats %>%
+  kbl(caption = "Descriptive Statistics", digits = 2) %>%
+  kable_classic(full_width = FALSE)
+
+
+#linear relationship (pearson correlation)
+correlation <- cor(homework1$incomeperperson, homework1$internetuserate, 
+                   use = "complete.obs", method = "pearson")
+
+cat("Pearson correlation coefficient:", correlation, "\n")
+
+
+
+
+
+#scatterplot with regression line
+ggplot(homework1_clean, aes(x = incomeperperson, y = internetuserate)) +
+  geom_point(alpha = 0.6, color = "steelblue") +
+  geom_smooth(method = "lm", se = TRUE, color = "red") +
+  labs(title = "GDP vs Internet Usage",
+       x = "Income per Person (GDP)", 
+       y = "Internet Usage Rate") +
+  theme_minimal()
+
+
+
+#simple linear regression
+model <- lm(internetuserate ~ incomeperperson, data = homework1_clean)
+cat("\nLINEAR REGRESSION RESULTS\n")
+summary(model)
+model_summary <- summary(model)
+coefficients_table <- as.data.frame(model_summary$coefficients)
+coefficients_table$Variable <- rownames(coefficients_table)
+rownames(coefficients_table) <- NULL
+
+kable(coefficients_table,
+      col.names = c("Estimate", "Std. Error", "t-value", "p-value", "Variable"),
+digits = 4,
+caption = "Linear Regression Results: Internet Use Rate vs Income") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+
+
+
+
+
+
+
+
+model_summary <- summary(model)
+cat("\nRegression Equation: internetuserate = ????? + ?????*incomeperperson + u\n")
+cat("Intercept (?????):", round(coef(model)[1], 4), "\n")
+cat("Slope (?????):", round(coef(model)[2], 6), "\n")
+cat("R-squared:", round(model_summary$r.squared, 4), "\n")
+cat("Adjusted R-squared:", round(model_summary$adj.r.squared, 4), "\n")
+cat("F-statistic:", round(model_summary$fstatistic[1], 2), "\n")
+cat("P-value:", format.pval(pf(model_summary$fstatistic[1], 
+                               model_summary$fstatistic[2], 
+                               model_summary$fstatistic[3], 
+                               lower.tail = FALSE)), "\n")
+
+
+
+#create income groups
+homework1_clean$income_group <- cut(homework1_clean$incomeperperson, 
+                              breaks = quantile(homework1_clean$incomeperperson, 
+                                                probs = c(0, 0.25, 0.5, 0.75, 1), 
+                                                na.rm = TRUE),
+                              labels = c("Low", "Medium", "High", "Very High"))
+
+ggplot(homework1_clean, aes(x = income_group, y = internetuserate)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Internet Usage by Income Groups",
+       x = "Income Group", 
+       y = "Internet Usage Rate") +
+  theme_minimal()
+
+
+
+#density plot
+ggplot(homework1_clean, aes(x = internetuserate, fill = income_group)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Distribution of Internet Usage by Income Groups",
+       x = "Internet Usage Rate", 
+       y = "Density") +
+  theme_minimal()
+
+
+
+#This study reveals a significant positive correlation between 
+#a country's economic development (measured by GDP per capita) 
+#and its internet adoption rates,
+#suggesting that wealthier nations tend to have higher internet penetration.
+
+
+#Seyit Mustafa Turhan S033526
+#I????lay ??zkan S029109
+#Ahmet Serdar Baykoz S041143
+#??rem Alpar S034014
+#Alperen Y??ld??z S040452
+
+
+
+
+
